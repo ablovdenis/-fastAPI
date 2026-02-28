@@ -1,70 +1,93 @@
-from pydantic import BaseModel, Field, field_validator, computed_field
+from pydantic import BaseModel, Field, field_validator, computed_field, EmailStr
 from functools import cached_property
 from datetime import datetime as dati
+from typing import List
 
-class Create_atModel(BaseModel):
-    @computed_field # Это для автоматического подсчёта поля создания.
-    @cached_property # Это для запрета повторного вычисления (чтоб не обновлялось при
-                     # get и put запросах.
-    def created_at(self) -> dati:
-        return dati.now()
+class UserUpdate(BaseModel):
+    first_name: str = Field(default=None)
+    last_name: str = Field(default=None)
+    bio_info: str = Field(default=None)
+    email: EmailStr = Field(default=None)
 
-class UserRequest(BaseModel):
-    nickname: str = Field(min_length=4, max_length=20)
-    password: str = Field(exclude=True, min_length=10, max_length=40)
-    @field_validator('password')
-    def check_password(cls, value):
-        contains_numbers = False
-        contains_symbols = False
-        for character in value:
-            if character.isdigit(): contains_numbers = True
-            elif character.isalpha(): contains_symbols = True
-            if contains_numbers and contains_symbols: break
-        if not(contains_numbers and contains_symbols and '!' in value and
-               '#' in value) or ' ' in value:
-            raise ValueError('Пароль должен содержать цифры, символы латиницы, знаки \'!\' и \'#\' и не должен содержать пробелы.')
-        return value
-
-class UserProfileResponse(BaseModel):
+class UserCreate(UserUpdate):
     nickname: str
-    created_at: dati
-    
+    password: str
 
-class UserResponse(UserProfileResponse):
+class UserOut(UserUpdate):
     id: int
+    nickname: str
+    active: bool
+    date_joined: dati
 
-class MyBaseModel(Create_atModel):
-    if_published: bool = Field(
-        default=True, description='Снимите галочку, чтобы скрыть публикацию.'
-    )
+    class Config:
+        from_attributes = True
 
-class Post(MyBaseModel):
-    title: str = Field(max_length=256, alias='Заголовок')
-    text: str = Field(alias='Текст')
-    pub_date: dati = Field(
-        alias='Дата и время публикации',
-        description=('Если установить дату и время в будущем'
-                     ' — можно делать отложенные публикации.')
-    )
-    author: UserModel = Field(alias='Автор публикации')
-    location: LocationModel = Field(default=None, alias='Местоположение')
-    category: CategoryModel = Field(alias='Категория')
+
+class CategoryUpdateAndCreate(BaseModel):
+    slug: str = Field(default=None)
+    title: str = Field(default=None)
+    description: str = Field(default=None)
+    is_published: bool = Field(default=None)
+
+class CategoryOut(CategoryUpdateAndCreate):
+    id: int
+    created_at: dati
+
+    class Config:
+        from_attributes = True
+
+
+class LocationUpdateAndCreate(BaseModel):
+    name: str = Field(default=None)
+    is_published: bool = Field(default=None)
+
+class LocationOut(LocationUpdateAndCreate):
+    id: int
+    created_at: dati
+
+    class Config:
+        from_attributes = True
+
+
+class PostUpdate(BaseModel):
+    title: str = Field(default=None)
+    text: str = Field(default=None)
+    pub_date: dati = Field(default=None)
+    is_published: bool = Field(default=None)
     image: str = Field(default=None)
+    location_id: int = Field(default=None)
+    category_id: int = Field(default=None)
 
-class CategoryModel(MyBaseModel):
-    title: str = Field(max_length=256, alias='Заголовок')
-    description: str = Field(alias='Описание')
-    slug: str = Field(
-        alias='Идентификатор',
-        description=('Идентификатор страницы для URL; разрешены'
-                     ' символы латиницы, цифры, дефис и подчёркивание.')
-    )
+class PostCreate(PostUpdate):
+    author_id: int = Field(default=None)
 
-class LocationModel(MyBaseModel):
-    name: str = Field(max_length=256, alias='Название места')
+class PostOut(PostCreate):
+    id: int
+    created_at: dati
+
+    class Config:
+        from_attributes = True
+
+class PostDetail(PostOut):
+    author: UserOut
+    category: CategoryOut = Field(default=None)
+    location: LocationOut = Field(default=None)
+    comments: List["CommentOut"] = Field(default=[])
+
+    class Config:
+        from_attributes = True
 
 
-class CommentModel(Create_atModel):
-    text: str = Field(alias='Текст комментария')
-    post: str = Field(alias='Комментарий')
-    author: UserModel
+class CommentUpdate(BaseModel):
+    text: str = Field(default=None)
+
+class CommentCreate(CommentUpdate):
+    post_id: int
+    author_id: int
+
+class CommentOut(CommentCreate):
+    id: int
+    created_at: dati
+
+    class Config:
+        from_attributes = True

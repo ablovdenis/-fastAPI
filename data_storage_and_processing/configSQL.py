@@ -10,4 +10,11 @@ engine = create_engine(SQLALCHEMY_DATABASE_URL)
 Base.metadata.create_all(bind=engine)
 
 SessionLocal = sessionmaker(autoflush=False, bind=engine)
-DataBase = SessionLocal()
+
+# Взял из Интернета. Нужно для того, чтоб не держать БД открытым тогда, когда не надо.
+def get_db():
+    DataBase = SessionLocal()
+    try:
+        yield DataBase
+    finally:
+        DataBase.close()
