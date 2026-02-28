@@ -9,8 +9,8 @@ class Create_atModel(BaseModel):
     def created_at(self) -> dati:
         return dati.now()
 
-class UserModel(Create_atModel):
-    nickname: str = Field(min_length=4, max_length=30)
+class UserRequest(BaseModel):
+    nickname: str = Field(min_length=4, max_length=20)
     password: str = Field(exclude=True, min_length=10, max_length=40)
     @field_validator('password')
     def check_password(cls, value):
@@ -24,6 +24,14 @@ class UserModel(Create_atModel):
                '#' in value) or ' ' in value:
             raise ValueError('Пароль должен содержать цифры, символы латиницы, знаки \'!\' и \'#\' и не должен содержать пробелы.')
         return value
+
+class UserProfileResponse(BaseModel):
+    nickname: str
+    created_at: dati
+    
+
+class UserResponse(UserProfileResponse):
+    id: int
 
 class MyBaseModel(Create_atModel):
     if_published: bool = Field(
@@ -41,7 +49,7 @@ class Post(MyBaseModel):
     author: UserModel = Field(alias='Автор публикации')
     location: LocationModel = Field(default=None, alias='Местоположение')
     category: CategoryModel = Field(alias='Категория')
-    # image: ImageField = Field(default=None)
+    image: str = Field(default=None)
 
 class CategoryModel(MyBaseModel):
     title: str = Field(max_length=256, alias='Заголовок')
